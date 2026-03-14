@@ -3,106 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>L4OS - Ultimate Reset Edition</title>
+    <title>L4OS Pro - Battery & Power Edition</title>
     <style>
         :root { 
             --tail-blue: #00c3ff; --l4-gold: #ffd700; --lvl50: #e67e22; 
-            --glass: rgba(255, 255, 255, 0.1); --matrix: #00ff41;
+            --glass: rgba(255, 255, 255, 0.1); --matrix: #00ff41; --danger: #ff4444;
         }
         body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
 
         .tablet { width: 980px; height: 680px; background: #1a1a1a; border-radius: 50px; padding: 12px; position: relative; border: 4px solid #333; }
         .screen { width: 100%; height: 100%; background: #0b0b0b; border-radius: 40px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
 
-        /* UI COMPONENTS */
+        /* UI */
         .sw-status { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
         .game-gallery { flex: 1; display: flex; align-items: center; padding: 0 40px; gap: 20px; }
-        .game-card { min-width: 180px; height: 180px; background: #222; border-radius: 10px; border: 3px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
+        .game-card { min-width: 180px; height: 180px; background: #1a1a1a; border-radius: 12px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 45px; }
         
         /* DOCK */
-        .sw-dock { height: 100px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 30px; }
-        .sw-icon { width: 50px; height: 50px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.2s; }
-        .sw-icon:hover { background: #333; transform: scale(1.1); }
+        .sw-dock { height: 110px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 25px; background: rgba(255,255,255,0.02); }
+        .sw-icon { width: 55px; height: 55px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
+        .sw-icon:hover { transform: scale(1.15); border-color: var(--tail-blue); }
 
-        /* REBOOT LAYERS */
+        /* REBOOT PHASES */
         .overlay { position: absolute; inset: 0; background: black; z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #matrix-screen { color: var(--matrix); font-family: 'Courier New', monospace; padding: 20px; overflow: hidden; font-size: 14px; text-align: left; align-items: flex-start; }
-        
-        .loading-bar-container { width: 300px; height: 6px; background: #222; border-radius: 3px; margin-top: 20px; overflow: hidden; }
+        #matrix-screen { color: var(--matrix); font-family: 'Courier New', monospace; padding: 30px; overflow: hidden; font-size: 13px; text-align: left; align-items: flex-start; }
+        .loading-bar-container { width: 320px; height: 4px; background: #222; border-radius: 2px; margin-top: 25px; overflow: hidden; }
         .loading-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); transition: linear; }
 
         /* HARDWARE */
         .badge-scanner { position: absolute; right: -90px; top: 220px; width: 80px; height: 180px; background: #222; border-radius: 0 20px 20px 0; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: space-around; cursor: pointer; }
-        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; }
-        .card { position: absolute; right: -250px; width: 110px; height: 150px; border-radius: 12px; transition: 0.8s; z-index: 10000; padding: 15px; color: black; font-weight: bold; }
+        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; transition: 0.2s; }
+        .card { position: absolute; right: -250px; width: 115px; height: 155px; border-radius: 12px; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); z-index: 10000; padding: 15px; color: black; font-weight: bold; }
         
         /* ANIMATIONS */
-        @keyframes flash-r { 50% { background: #f00; box-shadow: 0 0 10px #f00; } }
-        .led-red { animation: flash-r 0.5s infinite; }
+        @keyframes led-wait { 50% { background: #f00; box-shadow: 0 0 12px #f00; } }
+        .led-red { animation: led-wait 0.5s infinite; }
+        @keyframes flash-bat { 50% { opacity: 0.3; } }
+        .low-bat-text { color: var(--danger) !important; animation: flash-bat 1s infinite; }
     </style>
 </head>
 <body>
 
     <div class="tablet">
-        <div class="screen" id="main-ui">
+        <div class="screen">
             <div id="reboot-logo-layer" class="overlay">
                 <div style="width:80px; height:80px; border:4px solid var(--tail-blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--tail-blue); margin-bottom: 20px;">T</div>
                 <h2 style="letter-spacing: 5px;">REBOOTING...</h2>
             </div>
-
             <div id="blackout-layer" class="overlay"></div>
-
             <div id="matrix-screen" class="overlay"></div>
-
             <div id="final-boot-layer" class="overlay">
-                <div style="width:60px; height:60px; border:3px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; margin-bottom: 20px;">L4</div>
+                <div style="width:60px; height:60px; border:2px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom: 20px;">L4</div>
                 <div class="loading-bar-container"><div id="boot-progress" class="loading-bar-fill"></div></div>
             </div>
 
             <div class="sw-status">
-                <div style="font-weight:bold; color:var(--tail-blue);">TailOS Pro v10.0</div>
+                <div style="font-weight:bold; color:var(--tail-blue); font-size: 14px;">TailOS Pro</div>
                 <div id="clock">12:00</div>
-                <div>100% 🔋</div>
+                <div id="bat-status" style="font-size: 12px;">100% 🔋</div>
             </div>
 
             <div class="game-gallery">
-                <div class="game-card">🌕<span>Tail-Moon</span></div>
-                <div class="game-card">🌐<span>Browser</span></div>
-                <div class="game-card" style="border: 2px dashed #444;">⚙️<span>Settings</span></div>
+                <div class="game-card">🌕<span>Moon</span></div>
+                <div class="game-card">🌐<span>Web</span></div>
+                <div class="game-card" style="border-style: dashed; opacity: 0.3;">➕</div>
             </div>
 
             <div class="sw-dock">
                 <div class="sw-icon" onclick="requestScan(100000, 'stability')">⚖️</div>
-                <div class="sw-icon" onclick="requestScan(100000, 'reset')">🔄</div>
+                <div class="sw-icon" id="reset-btn" onclick="requestScan(100000, 'reset')" style="color: var(--danger);">🔄</div>
                 <div class="sw-icon" onclick="requestScan(50, 'security')">🔒</div>
             </div>
         </div>
 
         <div class="badge-scanner" onclick="triggerScan()">
             <div id="led" class="led"></div>
-            <div style="font-size:20px;">📶</div>
+            <div style="font-size:18px;">📶</div>
         </div>
 
         <div id="card" class="card">
             <div id="card-lvl" style="font-size:1.1rem;">LVL</div>
-            <div style="margin-top:80px; font-size:9px;">L4-OS SYSTEM</div>
+            <div style="margin-top:85px; font-size:9px;">POWER AUTH</div>
         </div>
     </div>
 
     <script>
         let pLvl = 0; let pTask = "";
+        let usageCount = 0;
+        let batteryLevel = 100;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playPiano() {
+        function playBeep(freq, dur, type='triangle') {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.frequency.setValueAtTime(80, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.8);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function updateBattery() {
+            const batText = document.getElementById('bat-status');
+            const clock = document.getElementById('clock');
+            if(usageCount >= 3) {
+                batteryLevel = 12;
+                batText.innerHTML = `<span style="color:var(--danger)">${batteryLevel}% 🪫</span>`;
+                clock.classList.add('low-bat-text');
+            } else {
+                batteryLevel = 100 - (usageCount * 10);
+                batText.innerHTML = `${batteryLevel}% 🔋`;
+                clock.classList.remove('low-bat-text');
+            }
         }
 
         function requestScan(lvl, task) {
+            if(task === 'reset' && usageCount >= 4) {
+                alert("CRITICAL ERROR: Insufficient Power to Reboot. Please perform Security Maintenance (LVL 50).");
+                return;
+            }
             pLvl = lvl; pTask = task;
             document.getElementById('led').className = 'led led-red';
         }
@@ -111,71 +129,62 @@
             if(pLvl === 0) return;
             const led = document.getElementById('led');
             const card = document.getElementById('card');
-            
             led.className = 'led'; led.style.background = '#f90';
             card.style.background = (pLvl === 50) ? 'var(--lvl50)' : 'var(--l4-gold)';
             document.getElementById('card-lvl').innerText = "LVL " + pLvl;
             card.style.right = "45px";
 
             setTimeout(() => {
-                led.style.background = '#0f0'; playPiano();
+                led.style.background = '#0f0'; playBeep(80, 0.8);
                 setTimeout(() => {
                     card.style.right = "-250px"; led.style.background = '#300';
-                    if(pTask === 'reset') startReset();
-                    if(pTask === 'stability') alert("System Stable.");
+                    if(pTask === 'reset') { usageCount++; updateBattery(); startReset(); }
+                    if(pTask === 'stability') { usageCount++; updateBattery(); alert("Stability Sync Done."); }
+                    if(pTask === 'security') { usageCount = 0; updateBattery(); alert("System Recharged & Maintained."); }
                     pLvl = 0;
                 }, 800);
             }, 1200);
         }
 
         function startReset() {
-            // 1. Reboot Logo (3s)
-            const layer1 = document.getElementById('reboot-logo-layer');
-            layer1.style.display = 'flex';
-            
+            const l1 = document.getElementById('reboot-logo-layer');
+            const l2 = document.getElementById('blackout-layer');
+            const l3 = document.getElementById('matrix-screen');
+            const l4 = document.getElementById('final-boot-layer');
+            const bar = document.getElementById('boot-progress');
+
+            l1.style.display = 'flex';
             setTimeout(() => {
-                layer1.style.display = 'none';
-                // 2. Blackout (3s)
-                const layer2 = document.getElementById('blackout-layer');
-                layer2.style.display = 'flex';
-                
+                l1.style.display = 'none'; l2.style.display = 'flex';
                 setTimeout(() => {
-                    layer2.style.display = 'none';
-                    // 3. Matrix Script (5s)
-                    const layer3 = document.getElementById('matrix-screen');
-                    layer3.style.display = 'flex';
+                    l2.style.display = 'none'; l3.style.display = 'flex';
                     let lines = 0;
-                    const matrixInt = setInterval(() => {
-                        layer3.innerHTML += `> DEPLOYING_KERNEL_0x${Math.random().toString(16).substr(2,6).toUpperCase()}... [OK]<br>`;
-                        layer3.scrollTop = layer3.scrollHeight;
-                        lines++;
+                    const mInt = setInterval(() => {
+                        l3.innerHTML += `> POWER_CHECK_0x${Math.random().toString(16).substr(2,4).toUpperCase()}... OK<br>`;
+                        l3.scrollTop = l3.scrollHeight; lines++;
                         if(lines > 25) {
-                            clearInterval(matrixInt);
-                            layer3.style.display = 'none';
-                            // 4. Final Boot (5s)
-                            const layer4 = document.getElementById('final-boot-layer');
-                            layer4.style.display = 'flex';
-                            const bar = document.getElementById('boot-progress');
+                            clearInterval(mInt);
+                            l3.style.display = 'none'; l3.innerHTML = "";
+                            l4.style.display = 'flex';
                             let p = 0;
-                            const bootInt = setInterval(() => {
+                            const bInt = setInterval(() => {
                                 p += 2; bar.style.width = p + '%';
                                 if(p >= 100) {
-                                    clearInterval(bootInt);
-                                    layer4.style.display = 'none';
-                                    bar.style.width = '0%';
+                                    clearInterval(bInt);
+                                    playBeep(440, 0.5, 'sine'); setTimeout(() => playBeep(880, 0.8, 'sine'), 150);
+                                    setTimeout(() => { l4.style.display = 'none'; bar.style.width = '0%'; }, 500);
                                 }
                             }, 100);
                         }
-                    }, 200);
+                    }, 150);
                 }, 3000);
             }, 3000);
         }
 
-        function updateClock() {
+        setInterval(() => {
             const d = new Date();
             document.getElementById('clock').innerText = d.getHours() + ":" + String(d.getMinutes()).padStart(2, '0');
-        }
-        setInterval(updateClock, 1000);
+        }, 1000);
     </script>
 </body>
 </html>
