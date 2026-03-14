@@ -3,78 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>L4OS Pro - Crash & Power Master</title>
+    <title>L4OS Pro - Crash & Boot Master</title>
     <style>
         :root { 
             --tail-blue: #00c3ff; --l4-gold: #ffd700; --lvl50: #e67e22; 
-            --glass: rgba(255, 255, 255, 0.1); --matrix: #00ff41; --danger: #ff4444;
-            --bsod-blue: #0078d7;
+            --matrix: #00ff41; --danger: #ff4444; --bsod-blue: #0078d7;
         }
         body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
 
         .tablet { width: 980px; height: 680px; background: #1a1a1a; border-radius: 50px; padding: 12px; position: relative; border: 4px solid #333; }
         .screen { width: 100%; height: 100%; background: #0b0b0b; border-radius: 40px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
 
-        /* UI */
+        /* UI ELEMENTS */
         .sw-status { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
         .game-gallery { flex: 1; display: flex; align-items: center; padding: 0 40px; gap: 20px; }
-        .game-card { min-width: 180px; height: 180px; background: #1a1a1a; border-radius: 12px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 45px; cursor: pointer; transition: 0.3s; }
-        .game-card:hover { transform: scale(1.05); border-color: var(--tail-blue); }
-
+        .game-card { min-width: 180px; height: 180px; background: #111; border-radius: 12px; border: 2px solid #222; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 45px; }
+        
         /* DOCK */
-        .sw-dock { height: 110px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 25px; background: rgba(255,255,255,0.02); }
-        .sw-icon { width: 55px; height: 55px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
-        .sw-icon:hover { transform: scale(1.15); border-color: var(--tail-blue); }
+        .sw-dock { height: 110px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 20px; background: rgba(255,255,255,0.02); }
+        .sw-icon { width: 60px; height: 60px; background: #222; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
+        .sw-icon:hover { transform: translateY(-10px); border-color: var(--tail-blue); }
+        .sw-icon span { font-size: 8px; margin-top: 4px; font-weight: bold; color: #666; }
 
-        /* REBOOT PHASES */
+        /* OVERLAYS */
         .overlay { position: absolute; inset: 0; background: black; z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         #matrix-screen { color: var(--matrix); font-family: 'Courier New', monospace; padding: 30px; overflow: hidden; font-size: 13px; text-align: left; align-items: flex-start; }
         .loading-bar-container { width: 320px; height: 4px; background: #222; border-radius: 2px; margin-top: 25px; overflow: hidden; }
-        .loading-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); transition: linear; }
+        .loading-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); }
 
-        /* FAKE BSOD */
-        #bsod-screen { background: var(--bsod-blue); color: white; z-index: 40000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 50px; text-align: center; font-family: 'Segoe UI', sans-serif; }
+        /* BSOD */
+        #bsod-screen { background: var(--bsod-blue); color: white; z-index: 40000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 50px; text-align: left; }
+        .bsod-content { width: 80%; }
         #bsod-screen h1 { font-size: 100px; margin: 0; font-weight: 300; }
-        #bsod-screen p { font-size: 24px; margin: 20px 0; max-width: 700px; }
-
-        /* 0% SHUTDOWN */
-        #shutdown-screen { background: radial-gradient(circle, #200, #000); z-index: 50000; }
 
         /* HARDWARE */
-        .badge-scanner { position: absolute; right: -90px; top: 220px; width: 80px; height: 180px; background: #222; border-radius: 0 20px 20px 0; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: space-around; cursor: pointer; z-index: 20000; }
-        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; transition: 0.2s; }
-        .card { position: absolute; right: -250px; width: 115px; height: 155px; border-radius: 12px; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); z-index: 10000; padding: 15px; color: black; font-weight: bold; }
-        
-        @keyframes led-wait { 50% { background: #f00; box-shadow: 0 0 12px #f00; } }
-        .led-red { animation: led-wait 0.5s infinite; }
-        @keyframes flash-bat { 50% { opacity: 0.3; } }
-        .low-bat-status { color: var(--danger) !important; animation: flash-bat 1s infinite; }
+        .badge-scanner { position: absolute; right: -90px; top: 220px; width: 80px; height: 180px; background: #222; border-radius: 0 20px 20px 0; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: space-around; cursor: pointer; z-index: 50000; }
+        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; }
+        .card { position: absolute; right: -250px; width: 115px; height: 155px; border-radius: 12px; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); z-index: 60000; padding: 15px; color: black; font-weight: bold; }
+        @keyframes flash-red { 50% { background: #f00; box-shadow: 0 0 15px #f00; } }
+        .led-red { animation: flash-red 0.5s infinite; }
     </style>
 </head>
 <body>
 
     <div class="tablet">
         <div class="screen">
-            
-            <div id="shutdown-screen" class="overlay">
-                <div style="font-size: 80px; margin-bottom: 20px;">🪫</div>
-                <h1 style="color:var(--danger); font-size: 2.5rem;">CRITICAL SHUTDOWN</h1>
-                <p style="color:#666; font-size: 1.1rem; max-width: 500px;">Battery Level 0%. System locked.<br>Scan LVL 50 Card at Badge Reader to restore power.</p>
-            </div>
-
             <div id="bsod-screen" class="overlay">
-                <h1>:(</h1>
-                <p>Votre TailPad a détecté une erreur.<br>Récupération des données en cours...</p>
-                <p style="font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 40px;">Pour plus d'informations, scannez une carte admin à niveau.</p>
-                <div style="display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 5px;">
-                    <div id="led-bsod" style="width:10px; height:10px; background:#f00; border-radius:50%;"></div>
-                    <span>LVL 100K Requis</span>
+                <div class="bsod-content">
+                    <h1>:(</h1>
+                    <p style="font-size: 22px; margin: 20px 0;">Votre TailPad a détecté une erreur.<br>Récupération des données en cours...</p>
+                    <p style="font-size: 22px;"><span id="bsod-perc">0</span>% complété</p>
                 </div>
             </div>
 
             <div id="reboot-logo-layer" class="overlay">
-                <div style="width:80px; height:80px; border:4px solid var(--tail-blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--tail-blue); margin-bottom: 20px;">T</div>
-                <h2 style="letter-spacing: 5px; font-weight:300;">TailOS Reboot</h2>
+                <div style="width:80px; height:80px; border:4px solid var(--tail-blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--tail-blue);">T</div>
+                <h2 style="margin-top:20px;">SYSTEM RECOVERY</h2>
             </div>
             <div id="blackout-layer" class="overlay"></div>
             <div id="matrix-screen" class="overlay"></div>
@@ -84,79 +68,56 @@
             </div>
 
             <div class="sw-status">
-                <div style="font-weight:bold; color:var(--tail-blue); font-size: 14px;">TailOS Pro</div>
+                <div style="font-weight:bold; color:var(--tail-blue);">TailOS Pro v10.0</div>
                 <div id="clock">12:00</div>
-                <div id="bat-status" style="font-size: 12px;">100% 🔋</div>
+                <div>100% 🔋</div>
             </div>
 
             <div class="game-gallery">
                 <div class="game-card">🌕<span>Moon</span></div>
                 <div class="game-card">🌐<span>Web</span></div>
-                <div class="game-card" style="border-style: dashed; opacity: 0.3; cursor:default;">⚙️</div>
+                <div class="game-card" style="opacity: 0.2;">➕</div>
             </div>
 
             <div class="sw-dock">
-                <div class="sw-icon" onclick="requestScan(100000, 'reset')" style="color: var(--danger);">🔄</div>
-                <div class="sw-icon" onclick="requestScan(100000, 'crash-test')" style="background:#222; font-size: 16px;">💥<br>Test</div>
-                <div class="sw-icon" onclick="requestScan(50, 'security')">🔒</div>
+                <div class="sw-icon" onclick="requestScan(100000, 'reset')">🔄<span>RESET</span></div>
+                <div class="sw-icon" onclick="requestScan(100000, 'crash-test')" style="color: var(--danger);">💥<span>CRASH</span></div>
+                <div class="sw-icon" onclick="requestScan(50, 'security')">🔒<span>ADMIN</span></div>
             </div>
         </div>
 
-        <div class="badge-scanner" id="physical-scanner" onclick="triggerScan()">
+        <div class="badge-scanner" onclick="triggerScan()">
             <div id="led" class="led"></div>
             <div style="font-size:18px;">📶</div>
         </div>
 
         <div id="card" class="card">
             <div id="card-lvl" style="font-size:1.1rem;">LVL</div>
-            <div style="margin-top:85px; font-size:9px;">L4 SYNC CARD</div>
+            <div style="margin-top:85px; font-size:9px;">SYSTEM CARD</div>
         </div>
     </div>
 
     <script>
         let pLvl = 0; let pTask = "";
-        let battery = 100;
-        let isBSOD = false;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playBeep(freq, dur, type='triangle') {
+        function playBeep(f, d) {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            osc.frequency.setValueAtTime(f, audioCtx.currentTime); 
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + dur);
-        }
-
-        function drainBat(amount) {
-            battery -= amount;
-            if (battery < 0) battery = 0;
-            const batText = document.getElementById('bat-status');
-            batText.innerHTML = `${battery}% ${battery <= 20 ? '🪫' : '🔋'}`;
-            if (battery <= 20) batText.classList.add('low-bat-status');
-            else batText.classList.remove('low-bat-status');
-            if (battery === 0) {
-                document.getElementById('shutdown-screen').style.display = 'flex';
-                playBeep(50, 1.5);
-                closeApp('win-debug');
-                disableAllIcons();
-            }
+            osc.start(); osc.stop(audioCtx.currentTime + d);
         }
 
         function requestScan(lvl, task) {
-            if(battery === 0 && task !== 'recharge') return;
             pLvl = lvl; pTask = task;
             document.getElementById('led').className = 'led led-red';
         }
 
         function triggerScan() {
-            if (battery === 0) { pLvl = 50; pTask = 'recharge'; }
-            if (isBSOD) { pLvl = 100000; pTask = 'crash-loop'; }
-
             if (pLvl === 0) return;
             const led = document.getElementById('led');
             const card = document.getElementById('card');
-            
             led.className = 'led'; led.style.background = '#f90';
             card.style.background = (pLvl === 50) ? 'var(--lvl50)' : 'var(--l4-gold)';
             document.getElementById('card-lvl').innerText = "LVL " + pLvl;
@@ -166,76 +127,68 @@
                 led.style.background = '#0f0'; playBeep(80, 0.8);
                 setTimeout(() => {
                     card.style.right = "-250px"; led.style.background = '#300';
-                    if(pTask === 'reset' || pTask === 'crash-test' || pTask === 'crash-loop') { startRebootSequence(pTask); }
-                    if(pTask === 'security') alert("System Level 50 Verified.");
-                    if(pTask === 'recharge') { 
-                        battery = 100; drainBat(0); 
-                        document.getElementById('shutdown-screen').style.display = 'none';
-                        enableAllIcons();
-                        alert("Recharged to 100%.");
-                    }
-                    pLvl = 0; pTask = "";
+                    if(pTask === 'crash-test') runCrashSequence();
+                    if(pTask === 'reset') startReboot(false);
+                    pLvl = 0;
                 }, 800);
             }, 1200);
         }
 
-        function startRebootSequence(origin) {
-            if (origin === 'reset') drainBat(20);
-            if (origin === 'crash-test') drainBat(10);
-            
-            isBSOD = false; // Reset crash state
-            document.getElementById('bsod-screen').style.display = 'none';
+        function runCrashSequence() {
+            // 1. BSOD (0 to 100% at 25%/sec = 4 seconds)
+            document.getElementById('bsod-screen').style.display = 'flex';
+            let p = 0;
+            const bsodInt = setInterval(() => {
+                p += 5; 
+                document.getElementById('bsod-perc').innerText = p;
+                if(p >= 100) {
+                    clearInterval(bsodInt);
+                    setTimeout(() => startReboot(true), 1000);
+                }
+            }, 200); // 200ms * 5 = 1000ms = 25%
+        }
 
-            // Phase 1: Reboot Logo (3s)
-            const l1 = document.getElementById('reboot-logo-layer');
-            l1.style.display = 'flex';
+        function startReboot(isFromCrash) {
+            document.getElementById('bsod-screen').style.display = 'none';
+            // 2. Blackout (3s)
+            showLayer('blackout-layer');
             setTimeout(() => {
-                l1.style.display = 'none';
-                // Phase 2: Blackout (3s)
-                const l2 = document.getElementById('blackout-layer');
-                l2.style.display = 'flex';
-                setTimeout(() => {
-                    l2.style.display = 'none';
-                    // Phase 3: Matrix (5s)
-                    const l3 = document.getElementById('matrix-screen');
-                    l3.style.display = 'flex';
-                    let lines = 0;
-                    const mInt = setInterval(() => {
-                        l3.innerHTML += `> RECOVERY_SESSION_0x${Math.random().toString(16).substr(2,4).toUpperCase()}...<br>`;
-                        l3.scrollTop = l3.scrollHeight; lines++;
-                        if(lines > 20) {
-                            clearInterval(mInt);
-                            l3.style.display = 'none'; l3.innerHTML = "";
-                            // Phase 4: Boot (5s)
-                            const l4 = document.getElementById('final-boot-layer');
-                            l4.style.display = 'flex';
-                            const bar = document.getElementById('boot-progress');
-                            let p = 0;
-                            const bInt = setInterval(() => {
-                                p += 2; bar.style.width = p + '%';
-                                if(p >= 100) {
-                                    clearInterval(bInt);
-                                    playBeep(440, 0.3); setTimeout(()=>playBeep(880, 0.5), 100);
-                                    setTimeout(() => { 
-                                        l4.style.display = 'none'; bar.style.width = '0%';
-                                        if (origin === 'crash-test' || origin === 'crash-loop') triggerFakeBSOD();
-                                    }, 500);
-                                }
-                            }, 100);
-                        }
-                    }, 200);
-                }, 3000);
+                // 3. Matrix (5s)
+                showLayer('matrix-screen');
+                let lines = 0;
+                const mInt = setInterval(() => {
+                    document.getElementById('matrix-screen').innerHTML += `> DEPLOY_FIX_0x${Math.random().toString(16).substr(2,4).toUpperCase()}...<br>`;
+                    lines++;
+                    if(lines > 25) {
+                        clearInterval(mInt);
+                        // 4. Final Boot (5s)
+                        showLayer('final-boot-layer');
+                        let progress = 0;
+                        const bootBar = document.getElementById('boot-progress');
+                        const bInt = setInterval(() => {
+                            progress += 1; 
+                            bootBar.style.width = progress + '%';
+                            if(progress >= 100) {
+                                clearInterval(bInt);
+                                playBeep(440, 0.3); setTimeout(()=>playBeep(880, 0.5), 150);
+                                setTimeout(() => { hideAllLayers(); }, 500);
+                            }
+                        }, 50); // 50ms * 100 = 5000ms (5 seconds)
+                    }
+                }, 200);
             }, 3000);
         }
 
-        function triggerFakeBSOD() {
-            isBSOD = true;
-            document.getElementById('bsod-screen').style.display = 'flex';
-            document.getElementById('led-bsod').style.animation = "flash-red 0.5s infinite";
+        function showLayer(id) {
+            hideAllLayers();
+            document.getElementById(id).style.display = 'flex';
         }
 
-        function disableAllIcons() { document.querySelectorAll('.sw-icon, .game-card').forEach(i => i.style.pointerEvents = 'none'); }
-        function enableAllIcons() { document.querySelectorAll('.sw-icon, .game-card').forEach(i => i.style.pointerEvents = 'auto'); }
+        function hideAllLayers() {
+            document.querySelectorAll('.overlay').forEach(l => l.style.display = 'none');
+            document.getElementById('matrix-screen').innerHTML = "";
+            document.getElementById('boot-progress').style.width = '0%';
+        }
 
         setInterval(() => {
             const d = new Date();
