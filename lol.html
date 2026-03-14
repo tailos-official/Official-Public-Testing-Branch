@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>L4OS Pro - Battery & Power Edition</title>
+    <title>L4OS Pro - Gaming & Power Edition</title>
     <style>
         :root { 
             --tail-blue: #00c3ff; --l4-gold: #ffd700; --lvl50: #e67e22; 
@@ -14,64 +14,93 @@
         .tablet { width: 980px; height: 680px; background: #1a1a1a; border-radius: 50px; padding: 12px; position: relative; border: 4px solid #333; }
         .screen { width: 100%; height: 100%; background: #0b0b0b; border-radius: 40px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
 
-        /* UI */
-        .sw-status { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
-        .game-gallery { flex: 1; display: flex; align-items: center; padding: 0 40px; gap: 20px; }
-        .game-card { min-width: 180px; height: 180px; background: #1a1a1a; border-radius: 12px; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 45px; }
+        /* SWITCH STYLE UI */
+        .sw-status { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; z-index: 100; }
+        .game-gallery { flex: 1; display: flex; align-items: center; padding: 0 40px; gap: 20px; z-index: 10; }
+        .game-card { min-width: 200px; height: 200px; background: #1a1a1a; border-radius: 15px; border: 3px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 50px; cursor: pointer; transition: 0.3s; }
+        .game-card:hover { transform: scale(1.05); border-color: var(--tail-blue); box-shadow: 0 10px 30px rgba(0,195,255,0.2); }
+        .game-card span { font-size: 14px; margin-top: 15px; font-weight: bold; letter-spacing: 2px; color: #666; }
+
+        /* GAME INTERFACES */
+        .app-window { position: absolute; inset: 0; background: #000; z-index: 500; display: none; flex-direction: column; animation: zoomIn 0.3s; }
+        .app-header { height: 60px; background: #111; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 2px solid var(--tail-blue); }
         
         /* DOCK */
         .sw-dock { height: 110px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 25px; background: rgba(255,255,255,0.02); }
-        .sw-icon { width: 55px; height: 55px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
-        .sw-icon:hover { transform: scale(1.15); border-color: var(--tail-blue); }
+        .sw-icon { width: 55px; height: 55px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; border: 1px solid #333; }
 
-        /* REBOOT PHASES */
-        .overlay { position: absolute; inset: 0; background: black; z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #matrix-screen { color: var(--matrix); font-family: 'Courier New', monospace; padding: 30px; overflow: hidden; font-size: 13px; text-align: left; align-items: flex-start; }
+        /* OVERLAYS */
+        .overlay { position: absolute; inset: 0; background: black; z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        #shutdown-screen { background: radial-gradient(circle, #200, #000); z-index: 40000; }
         .loading-bar-container { width: 320px; height: 4px; background: #222; border-radius: 2px; margin-top: 25px; overflow: hidden; }
-        .loading-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); transition: linear; }
+        .loading-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); }
 
         /* HARDWARE */
         .badge-scanner { position: absolute; right: -90px; top: 220px; width: 80px; height: 180px; background: #222; border-radius: 0 20px 20px 0; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: space-around; cursor: pointer; }
-        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; transition: 0.2s; }
+        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; }
         .card { position: absolute; right: -250px; width: 115px; height: 155px; border-radius: 12px; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); z-index: 10000; padding: 15px; color: black; font-weight: bold; }
         
-        /* ANIMATIONS */
-        @keyframes led-wait { 50% { background: #f00; box-shadow: 0 0 12px #f00; } }
-        .led-red { animation: led-wait 0.5s infinite; }
-        @keyframes flash-bat { 50% { opacity: 0.3; } }
-        .low-bat-text { color: var(--danger) !important; animation: flash-bat 1s infinite; }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes flash-red { 50% { background: #f00; box-shadow: 0 0 15px #f00; } }
+        .led-red { animation: flash-red 0.5s infinite; }
+        .low-bat { color: var(--danger) !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
     <div class="tablet">
         <div class="screen">
-            <div id="reboot-logo-layer" class="overlay">
-                <div style="width:80px; height:80px; border:4px solid var(--tail-blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--tail-blue); margin-bottom: 20px;">T</div>
-                <h2 style="letter-spacing: 5px;">REBOOTING...</h2>
+            
+            <div id="shutdown-screen" class="overlay">
+                <div style="font-size: 80px; margin-bottom: 20px;">🪫</div>
+                <h1 style="color:var(--danger);">KIOSK SHUTTING DOWN</h1>
+                <p style="color:#555;">Low Battery Level (0%)<br>Please Scan LVL 50 Card to Recharge.</p>
             </div>
+
+            <div id="app-moon" class="app-window">
+                <div class="app-header">
+                    <span>TAIL-MOON v1.0</span>
+                    <button onclick="closeApp('app-moon')" style="background:none; border:2px solid #444; color:white; border-radius:50%; width:30px; height:30px; cursor:pointer;">X</button>
+                </div>
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background: radial-gradient(circle, #1a1a1a, #000);">
+                    <div style="font-size:100px; filter: drop-shadow(0 0 20px #fff);">🌕</div>
+                    <h2 style="color:white; margin-top:20px;">READY TO EXPLORE</h2>
+                    <button onclick="alert('Mission Started')" style="padding:15px 40px; background:white; color:black; border:none; border-radius:30px; font-weight:bold; cursor:pointer;">START GAME</button>
+                </div>
+            </div>
+
+            <div id="app-web" class="app-window">
+                <div class="app-header">
+                    <input type="text" value="https://www.google.com" style="background:#222; border:none; color:white; width:70%; padding:5px 15px; border-radius:10px;">
+                    <button onclick="closeApp('app-web')" style="background:none; border:2px solid #444; color:white; border-radius:50%; width:30px; height:30px; cursor:pointer;">X</button>
+                </div>
+                <iframe src="https://www.wikipedia.org" style="flex:1; border:none;"></iframe>
+            </div>
+
+            <div id="reboot-logo-layer" class="overlay"><h2>REBOOTING...</h2></div>
             <div id="blackout-layer" class="overlay"></div>
             <div id="matrix-screen" class="overlay"></div>
             <div id="final-boot-layer" class="overlay">
-                <div style="width:60px; height:60px; border:2px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom: 20px;">L4</div>
+                <div style="font-size:30px; font-weight:bold;">L4</div>
                 <div class="loading-bar-container"><div id="boot-progress" class="loading-bar-fill"></div></div>
             </div>
 
             <div class="sw-status">
-                <div style="font-weight:bold; color:var(--tail-blue); font-size: 14px;">TailOS Pro</div>
+                <div style="font-weight:bold; color:var(--tail-blue);">TailOS Pro</div>
                 <div id="clock">12:00</div>
-                <div id="bat-status" style="font-size: 12px;">100% 🔋</div>
+                <div id="bat-status">100% 🔋</div>
             </div>
 
             <div class="game-gallery">
-                <div class="game-card">🌕<span>Moon</span></div>
-                <div class="game-card">🌐<span>Web</span></div>
-                <div class="game-card" style="border-style: dashed; opacity: 0.3;">➕</div>
+                <div class="game-card" onclick="openGame('app-moon')">🌕<span>MOON</span></div>
+                <div class="game-card" onclick="openGame('app-web')">🌐<span>WEB</span></div>
+                <div class="game-card" style="opacity: 0.2; cursor: default;">⚙️<span>SYSTEM</span></div>
             </div>
 
             <div class="sw-dock">
                 <div class="sw-icon" onclick="requestScan(100000, 'stability')">⚖️</div>
-                <div class="sw-icon" id="reset-btn" onclick="requestScan(100000, 'reset')" style="color: var(--danger);">🔄</div>
+                <div class="sw-icon" onclick="requestScan(100000, 'reset')" style="color: var(--danger);">🔄</div>
                 <div class="sw-icon" onclick="requestScan(50, 'security')">🔒</div>
             </div>
         </div>
@@ -89,44 +118,52 @@
 
     <script>
         let pLvl = 0; let pTask = "";
-        let usageCount = 0;
-        let batteryLevel = 100;
+        let battery = 100;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playBeep(freq, dur, type='triangle') {
+        function playBeep(f, d) {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            osc.frequency.setValueAtTime(f, audioCtx.currentTime); 
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + dur);
+            osc.start(); osc.stop(audioCtx.currentTime + d);
         }
 
-        function updateBattery() {
-            const batText = document.getElementById('bat-status');
+        function drainBattery(amount) {
+            battery -= amount;
+            if (battery < 0) battery = 0;
+            const batEl = document.getElementById('bat-status');
             const clock = document.getElementById('clock');
-            if(usageCount >= 3) {
-                batteryLevel = 12;
-                batText.innerHTML = `<span style="color:var(--danger)">${batteryLevel}% 🪫</span>`;
-                clock.classList.add('low-bat-text');
-            } else {
-                batteryLevel = 100 - (usageCount * 10);
-                batText.innerHTML = `${batteryLevel}% 🔋`;
-                clock.classList.remove('low-bat-text');
+            
+            batEl.innerHTML = `${battery}% ${battery <= 20 ? '🪫' : '🔋'}`;
+            if (battery <= 20) { batEl.classList.add('low-bat'); clock.classList.add('low-bat'); }
+            else { batEl.classList.remove('low-bat'); clock.classList.remove('low-bat'); }
+            
+            if (battery === 0) {
+                document.getElementById('shutdown-screen').style.display = 'flex';
+                playBeep(50, 1);
             }
         }
+
+        function openGame(id) {
+            if (battery === 0) return;
+            document.getElementById(id).style.display = 'flex';
+            drainBattery(5);
+        }
+
+        function closeApp(id) { document.getElementById(id).style.display = 'none'; }
 
         function requestScan(lvl, task) {
-            if(task === 'reset' && usageCount >= 4) {
-                alert("CRITICAL ERROR: Insufficient Power to Reboot. Please perform Security Maintenance (LVL 50).");
-                return;
-            }
+            if (battery === 0 && lvl !== 50) return;
             pLvl = lvl; pTask = task;
             document.getElementById('led').className = 'led led-red';
         }
 
         function triggerScan() {
-            if(pLvl === 0) return;
+            if (pLvl === 0 && battery > 0) return;
+            // Force recharge if battery is 0
+            if (battery === 0) { pLvl = 50; pTask = "recharge"; }
+
             const led = document.getElementById('led');
             const card = document.getElementById('card');
             led.className = 'led'; led.style.background = '#f90';
@@ -138,9 +175,13 @@
                 led.style.background = '#0f0'; playBeep(80, 0.8);
                 setTimeout(() => {
                     card.style.right = "-250px"; led.style.background = '#300';
-                    if(pTask === 'reset') { usageCount++; updateBattery(); startReset(); }
-                    if(pTask === 'stability') { usageCount++; updateBattery(); alert("Stability Sync Done."); }
-                    if(pTask === 'security') { usageCount = 0; updateBattery(); alert("System Recharged & Maintained."); }
+                    if(pTask === 'reset') { drainBattery(20); startReset(); }
+                    if(pTask === 'stability') { drainBattery(10); alert("System Optimized"); }
+                    if(pTask === 'recharge' || pTask === 'security') { 
+                        battery = 100; drainBattery(0); 
+                        document.getElementById('shutdown-screen').style.display = 'none';
+                        alert("Battery Recharged to 100%");
+                    }
                     pLvl = 0;
                 }, 800);
             }, 1200);
@@ -160,9 +201,9 @@
                     l2.style.display = 'none'; l3.style.display = 'flex';
                     let lines = 0;
                     const mInt = setInterval(() => {
-                        l3.innerHTML += `> POWER_CHECK_0x${Math.random().toString(16).substr(2,4).toUpperCase()}... OK<br>`;
+                        l3.innerHTML += `> RECOVERY_SESSION_0x${Math.random().toString(16).substr(2,4).toUpperCase()}...<br>`;
                         l3.scrollTop = l3.scrollHeight; lines++;
-                        if(lines > 25) {
+                        if(lines > 20) {
                             clearInterval(mInt);
                             l3.style.display = 'none'; l3.innerHTML = "";
                             l4.style.display = 'flex';
@@ -171,12 +212,12 @@
                                 p += 2; bar.style.width = p + '%';
                                 if(p >= 100) {
                                     clearInterval(bInt);
-                                    playBeep(440, 0.5, 'sine'); setTimeout(() => playBeep(880, 0.8, 'sine'), 150);
+                                    playBeep(440, 0.3); setTimeout(()=>playBeep(880, 0.5), 100);
                                     setTimeout(() => { l4.style.display = 'none'; bar.style.width = '0%'; }, 500);
                                 }
                             }, 100);
                         }
-                    }, 150);
+                    }, 200);
                 }, 3000);
             }, 3000);
         }
