@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>L4OS - Switch Logic Edition</title>
+    <style>
+        :root { 
+            --tail-blue: #00c3ff; --l4-gold: #ffd700; --lvl50: #e67e22; 
+            --glass: rgba(255, 255, 255, 0.1); --danger: #ff4444;
+        }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
+
+        .tablet { width: 980px; height: 680px; background: #1a1a1a; border-radius: 50px; padding: 12px; position: relative; border: 4px solid #333; }
+        .screen { width: 100%; height: 100%; background: #0b0b0b; border-radius: 40px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+
+        /* SWITCH TOP BAR */
+        .sw-status { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        .user-pill { display: flex; align-items: center; gap: 10px; background: var(--glass); padding: 5px 15px; border-radius: 20px; font-size: 14px; }
+
+        /* SWITCH GAME GALLERY */
+        .game-gallery { flex: 1; display: flex; align-items: center; padding: 0 40px; gap: 20px; overflow-x: auto; scrollbar-width: none; }
+        .game-card { min-width: 180px; height: 180px; background: #222; border-radius: 10px; border: 3px solid transparent; transition: 0.3s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
+        .game-card:hover { border-color: var(--tail-blue); transform: scale(1.05); box-shadow: 0 0 20px rgba(0,195,255,0.3); }
+        .game-card span { font-size: 12px; margin-top: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* SWITCH BOTTOM DOCK */
+        .sw-dock { height: 100px; border-top: 1px solid #222; display: flex; justify-content: center; align-items: center; gap: 40px; }
+        .sw-icon { width: 50px; height: 50px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
+        .sw-icon:hover { background: var(--tail-blue); color: black; border-color: white; }
+
+        /* OVERLAYS */
+        #closed-overlay { position: absolute; inset: 0; background: black; z-index: 20000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        #stability-overlay { position: absolute; inset: 0; background: black; z-index: 15000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .p-bar-bg { width: 300px; height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin-top: 20px; }
+        .p-bar-fill { width: 0%; height: 100%; background: var(--tail-blue); }
+
+        /* HARDWARE */
+        .badge-scanner { position: absolute; right: -90px; top: 220px; width: 80px; height: 180px; background: #222; border-radius: 0 20px 20px 0; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: space-around; cursor: pointer; }
+        .led { width: 16px; height: 16px; background: #300; border-radius: 50%; }
+        .card { position: absolute; right: -250px; width: 110px; height: 150px; border-radius: 12px; transition: 0.8s cubic-bezier(0.19, 1, 0.22, 1); z-index: 10000; padding: 15px; color: black; font-weight: bold; }
+
+        /* LED ANIMATIONS */
+        @keyframes flash-r { 50% { background: #f00; box-shadow: 0 0 10px #f00; } }
+        @keyframes flash-o { 50% { background: #f90; box-shadow: 0 0 10px #f90; } }
+        .led-red { animation: flash-r 0.5s infinite; }
+        .led-orange { animation: flash-o 0.3s infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="tablet">
+        <div class="screen" id="main-ui">
+            
+            <div class="sw-status">
+                <div class="user-pill">
+                    <div style="width:25px; height:25px; background:var(--tail-blue); border-radius:50%;"></div>
+                    <span>L4-ADMIN</span>
+                </div>
+                <div id="clock" style="font-weight: bold; letter-spacing: 1px;">12:00</div>
+                <div style="display:flex; gap:15px; color:#555;"><span>📶</span><span>100% 🔋</span></div>
+            </div>
+
+            <div class="game-gallery">
+                <div class="game-card">🌕<span>Tail-Moon</span></div>
+                <div class="game-card" onclick="alert('Browser Locked in Game Only Mode')">🌐<span>Browser</span></div>
+                <div class="game-card" style="border-color:#555;">➕<span>All Apps</span></div>
+            </div>
+
+            <div class="sw-dock">
+                <div class="sw-icon" onclick="requestScan(100000, 'stability')">⚖️</div>
+                <div class="sw-icon" onclick="requestScan(50, 'security')">🔒</div>
+                <div class="sw-icon" onclick="requestScan(100000, 'close')">⚙️</div>
+                <div class="sw-icon" onclick="requestScan(50, 'game-toggle')">🎮</div>
+            </div>
+
+            <div id="closed-overlay">
+                <h1 style="font-size: 3rem;">Kiosk Closed</h1>
+                <p style="color: #444;">An assistant will arrive soon.</p>
+                <p style="color: #222; margin-top: 50px; font-size: 10px;">(Admin: Click Badge Reader to recover)</p>
+            </div>
+
+            <div id="stability-overlay">
+                <div id="stab-load" style="display:none; flex-direction:column; align-items:center;">
+                    <p style="letter-spacing:2px; font-size:12px;">SYSTEM STABILITY CHECK</p>
+                    <div class="p-bar-bg"><div id="stab-fill" class="p-bar-fill"></div></div>
+                </div>
+                <p id="stab-done" style="display:none; background:green; padding:10px 25px; font-weight:bold;">Update completed, return to your game.</p>
+            </div>
+
+        </div>
+
+        <div class="badge-scanner" onclick="triggerScan()">
+            <div id="led" class="led"></div>
+            <div style="font-size:20px;">📶</div>
+        </div>
+
+        <div id="card" class="card">
+            <div id="card-lvl" style="font-size:1.1rem;">LVL</div>
+            <div style="margin-top:80px; font-size:9px;">L4-OS ACCESS</div>
+        </div>
+    </div>
+
+    <script>
+        let isLocked = false;
+        let pLvl = 0;
+        let pTask = "";
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeep() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(80, audioCtx.currentTime); 
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.8);
+        }
+
+        function requestScan(lvl, task) {
+            pLvl = lvl; pTask = task;
+            document.getElementById('led').className = 'led led-red';
+        }
+
+        function triggerScan() {
+            if(isLocked) { pLvl = 50; pTask = "unlock"; }
+            if(pLvl === 0) return;
+
+            const led = document.getElementById('led');
+            const card = document.getElementById('card');
+            
+            led.className = 'led led-orange';
+            card.style.background = (pLvl === 50) ? 'var(--lvl50)' : 'var(--l4-gold)';
+            document.getElementById('card-lvl').innerText = "LVL " + pLvl;
+            card.style.right = "45px";
+
+            setTimeout(() => {
+                led.className = 'led'; led.style.background = '#0f0';
+                playBeep();
+                setTimeout(() => {
+                    card.style.right = "-250px"; led.style.background = '#300';
+                    execute(pTask);
+                    pLvl = 0;
+                }, 800);
+            }, 1200);
+        }
+
+        function execute(task) {
+            if(task === 'close') {
+                isLocked = true;
+                document.getElementById('closed-overlay').style.display = 'flex';
+            }
+            if(task === 'unlock') {
+                isLocked = false;
+                document.getElementById('closed-overlay').style.display = 'none';
+            }
+            if(task === 'security') alert("OS Type: TailOS v10.0\nRAM: 16Gb\nInternal: 1TB");
+            if(task === 'stability') runStability();
+            if(task === 'game-toggle') alert("Game Only Mode: Admin Verified.");
+        }
+
+        function runStability() {
+            const over = document.getElementById('stability-overlay');
+            const load = document.getElementById('stab-load');
+            const bar = document.getElementById('stab-fill');
+            const done = document.getElementById('stab-done');
+
+            over.style.display = 'flex';
+            setTimeout(() => {
+                load.style.display = 'flex';
+                let p = 0;
+                const itv = setInterval(() => {
+                    p++;
+                    bar.style.width = p + '%';
+                    if(p === 50) bar.style.background = 'var(--l4-gold)';
+                    if(p >= 100) {
+                        clearInterval(itv);
+                        load.style.display = 'none';
+                        done.style.display = 'block';
+                        setTimeout(() => { over.style.display = 'none'; done.style.display = 'none'; }, 3000);
+                    }
+                }, 100);
+            }, 3000);
+        }
+
+        function updateClock() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.getHours() + ":" + String(d.getMinutes()).padStart(2, '0');
+        }
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
